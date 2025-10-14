@@ -1,0 +1,42 @@
+version: '3.8' # docker-compose version
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.8.3
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_KRAFT_MODE: 'true' # KRaft is a built-in system that allows Kafka
+                               # to manage its own metadata and cluster coordination
+
+      CLUSTER_ID: '415c1d99-3dad-4b48-a67a-d96579e8f748'
+      KAFKA_NODE_ID: 1 # we have a cluster with only one broker
+
+      KAFKA_PROCESS_ROLES: broker,controller # not that we're defining will act both as broker & controller
+                                             # as a broker it'll store and serve data
+                                             # as a controller it'll manage the cluster coordination
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093 # defines which brokers or controllers can vote on important cluster decisions
+                                                   # we can have only one controller, others work as backups, participate
+                                                   # in consensus as passive voters, ready to become a leader
+                                                   # if the active controller fails
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # we have only one replica then if Kafka crashes, the metadata is lost
+      # specifies the network interfaces and ports on which the broker listens
+      # for incoming connections from clients and other brokers
+      # PLAINTEXT://0.0.0.0:9092 -- regular data traffic (producers and consumers)
+      # CONTROLLER://0.0.0.0:9093 -- brokers communicate with each other
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092, CONTROLLER://0.0.0.0:9093
+      # defines the addresses that Kafka tells clients/brokers to connect to
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # tells Kafka where to store: data files, broker logs, controller metadata
+      # it's a folder inside the docker filesystem
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+
+    volumes:
+      - kafka_kraft:/var/lib/kafka/data
+
+volumes:
+  kafka_kraft:
+
