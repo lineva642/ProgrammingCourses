@@ -1,1 +1,1 @@
-# second commit
+# Repo for the programming courses practice
